@@ -15,8 +15,7 @@ namespace WebScraper
         void ScrapeURLs(std::vector<std::string_view> urls) final;
         IScrapedPagePtr GetScrapedDataFromPage(std::string_view url) final;
     private:
-        std::map<std::string_view, ScrapedPage> m_scrapedPages;
-        std::vector<std::future<void>> m_scrapedPageThreads;
+        std::map<std::string_view, std::pair<std::future<void>, IScrapedPagePtr>> m_scrapedPages;
 
         void WaitAsyncs();
     };

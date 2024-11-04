@@ -2,9 +2,11 @@
 A Simple WebScraper in C++23 with multithreading capabilities
 
 # Requirements for building
-    GCC 13.1 for(C++23 capabilities)
-    Conan 2
-    CMake 3.22
+* GCC 13.1 for(C++23 capabilities)
+
+* Conan 2
+
+* CMake 3.22
 
 # How to setup the environment
     conan profile detect
@@ -14,4 +16,4 @@ A Simple WebScraper in C++23 with multithreading capabilities
 
 
 # How to execute the program
-    Just execute the WebScraper executable on build/Release
+Just execute the WebScraper executable on build/Release

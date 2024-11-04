@@ -1,10 +1,13 @@
 #include <iostream>
 #include <format>
+#include <regex>
+
 #include "ScrapedPage.h"
 #include "WebScraperException.h"
 
 namespace WebScraper
 {
+
     ScrapedPage::ScrapedPage(std::string bodyText)
         : m_bodyText(bodyText)
     {
@@ -23,7 +26,11 @@ namespace WebScraper
                 throw(WebScraperException(std::format("Failed to parse HTML document with status: {}", status)));
             }
             
-            SerializeDOMTree(lxb_dom_interface_node(document));
+            if(auto* body = lxb_html_document_body_element(document); body != nullptr)
+            {
+                ExtractPageTextElements(lxb_dom_interface_node(body));
+            }
+            
             lxb_html_document_destroy(document);
         }
         catch(const WebScraperException& e)
@@ -38,20 +45,58 @@ namespace WebScraper
         return m_bodyText;
     }
 
-
-    unsigned int SerializeDOM(const lxb_char_t *data, size_t len, void *ctx)
+    std::vector<FontTextData> ScrapedPage::GetExtractedText()
     {
-        std::cout << std::format("{}", std::string(reinterpret_cast<char *>(const_cast<lxb_char_t *>(data)), len)) << std::flush;
-        return LXB_STATUS_OK;
+        return m_extractedText;
     }
-
-    void ScrapedPage::SerializeDOMTree(lxb_dom_node_t* node)
+    
+    void ScrapedPage::ExtractPageTextElements(lxb_dom_node_t* node)
     {
-        if(node == nullptr) return;
-        if(auto status = lxb_html_serialize_pretty_tree_cb(node, LXB_HTML_SERIALIZE_OPT_UNDEF, 0, SerializeDOM, nullptr); status != LXB_STATUS_OK)
+        std::string fontSize = "default";
+        if(node->type == LXB_DOM_NODE_TYPE_TEXT)
         {
-            throw(WebScraperException(std::format("Failed to serialize DOM tree with status: {}", status)));
+            auto* t = lxb_dom_node_text_content(node, nullptr);
+            if(t != nullptr)
+            {
+                std::string tStr = reinterpret_cast<char *>(const_cast<lxb_char_t *>(t));
+                if(tStr.size() != 0)
+                {
+                    GetFontSize(node->parent, fontSize);
+                    m_extractedText.push_back({fontSize, tStr});
+                }
+            }
+        }
+        auto* child = lxb_dom_node_first_child(node);
+        while(child != nullptr)
+        {
+            ExtractPageTextElements(child);
+            child = lxb_dom_node_next(child);
         }
     }
+
+    void ScrapedPage::GetFontSize(lxb_dom_node_t* node, std::string& fontSize)
+    {
+        while(node)
+        {
+            if(node->type == LXB_DOM_NODE_TYPE_ELEMENT)
+            {
+                auto* elem = lxb_dom_interface_element(node);
+                auto* attr = lxb_dom_element_get_attribute(elem, reinterpret_cast<lxb_char_t *>(const_cast<char *>("style")), 5, nullptr);
+                if(attr)
+                {
+                    std::string style(reinterpret_cast<char *>(const_cast<lxb_char_t *>(attr)));
+                    std::regex fontSizeRegex("font-size:\\s*([\\d\\.]+\\w+%?);?");
+                    std::smatch match;
+                    if(std::regex_search(style, match, fontSizeRegex))
+                    {
+                        fontSize = match[1].str();
+                        return;
+                    }
+                }
+            }
+            node = lxb_dom_node_parent(node);
+        }
+    }
+
 
 }

@@ -2,11 +2,11 @@
 #include <chrono>
 #include <iostream>
 #include <format>
+#include <utility>
 
 #include "beauty/beauty.hpp"
 #include "WebScraper.h"
-
-
+#include "WebScraperException.h"
 
 namespace WebScraper
 {  
@@ -15,14 +15,14 @@ namespace WebScraper
         beauty::client client;
         WaitAsyncs();
         std::for_each(urls.begin(), urls.end(), [this, &client](std::string_view url){
-            m_scrapedPageThreads.push_back(std::async(std::launch::async, [this, url, &client](){
+            m_scrapedPages[url] = std::make_pair<std::future<void>, IScrapedPagePtr>(std::async(std::launch::async, [this, url, &client](){
                 auto [ec, response] = client.get(std::string(url));
                 if(!ec)
                 {
                     if(response.status() == boost::beast::http::status::ok)
                     {
                         std::cout << std::format("Scrapped {}", url) << std::endl;
-                        m_scrapedPages[url] = ScrapedPage(response.body());
+                        m_scrapedPages[url].second = std::make_shared<ScrapedPage>(response.body());
                     }
                     else
                     {
@@ -33,16 +33,19 @@ namespace WebScraper
                 {
                     std::cerr << std::format("Erro when sending request to: {} error: {}", url, ec.message()) << std::endl;
                 }
-            }));
+            }), nullptr);
         });
     }
    
     IScrapedPagePtr WebScraper::GetScrapedDataFromPage(std::string_view url)
     {
-        WaitAsyncs();
         if(auto search = m_scrapedPages.find(url); search != m_scrapedPages.end())
         {
-            return std::make_shared<ScrapedPage>(search->second);
+            if(search->second.second == nullptr)
+            {
+                search->second.first.get();
+            }
+            return search->second.second;
         }
         return nullptr;
     }
@@ -50,19 +53,19 @@ namespace WebScraper
 
     void WebScraper::WaitAsyncs()
     {
-        std::for_each(m_scrapedPageThreads.begin(), m_scrapedPageThreads.end(), [](auto& thread){
+        std::for_each(m_scrapedPages.begin(), m_scrapedPages.end(), [](auto& thread){
             using namespace std::chrono_literals;
-            if(!thread.valid()) return;
-            auto ret = thread.wait_for(100ms);
+            if(!thread.second.first.valid()) return;
+            auto ret = thread.second.first.wait_for(10ms);
             if(ret == std::future_status::ready)
             {
-                thread.get();
+                thread.second.first.get();
             }
             else if(ret == std::future_status::timeout)
             {
             }
         });
-        m_scrapedPageThreads.clear();
+        m_scrapedPages.clear();
     }
 
 }
