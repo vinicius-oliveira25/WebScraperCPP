@@ -1,6 +1,7 @@
 #include <iostream>
 #include <format>
 #include <regex>
+#include <algorithm>
 
 #include "ScrapedPage.h"
 #include "WebScraperException.h"
@@ -53,13 +54,22 @@ namespace WebScraper
     void ScrapedPage::ExtractPageTextElements(lxb_dom_node_t* node)
     {
         std::string fontSize = "default";
+        auto verifyWhiteSpace = [](std::string str)
+        {
+            return std::all_of(str.begin(), str.end(), 
+                [](auto ch) { 
+                    return std::isspace(ch); 
+                });
+        };
+
         if(node->type == LXB_DOM_NODE_TYPE_TEXT)
         {
             auto* t = lxb_dom_node_text_content(node, nullptr);
             if(t != nullptr)
             {
                 std::string tStr = reinterpret_cast<char *>(const_cast<lxb_char_t *>(t));
-                if(tStr.size() != 0)
+
+                if(tStr.size() != 0 && !verifyWhiteSpace(tStr))
                 {
                     GetFontSize(node->parent, fontSize);
                     m_extractedText.push_back({fontSize, tStr});
