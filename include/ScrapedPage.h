@@ -8,11 +8,14 @@ namespace WebScraper
     {
     public:
         ScrapedPage() = default;
-        ScrapedPage(std::string bodyText);
+        ScrapedPage(std::string url, std::string bodyText);
 
+        std::string GetUrl() final;
         std::string GetBodyText() final;
         std::vector<FontTextData> GetExtractedText() final;
+        KeywordData GetKeyword(std::string keyword) final;
     private:
+        std::string m_url;
         std::string m_bodyText;
         std::vector<FontTextData> m_extractedText;
         

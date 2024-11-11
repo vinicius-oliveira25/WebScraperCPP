@@ -9,8 +9,9 @@
 namespace WebScraper
 {
 
-    ScrapedPage::ScrapedPage(std::string bodyText)
-        : m_bodyText(bodyText)
+    ScrapedPage::ScrapedPage(std::string url, std::string bodyText) :
+        m_url(url), 
+        m_bodyText(bodyText)
     {
         lxb_html_document_t *document = nullptr;
         try
@@ -41,6 +42,11 @@ namespace WebScraper
         }
     }
 
+    std::string ScrapedPage::GetUrl()
+    {
+        return m_url;
+    }
+
     std::string ScrapedPage::GetBodyText()
     {
         return m_bodyText;
@@ -51,6 +57,22 @@ namespace WebScraper
         return m_extractedText;
     }
     
+    KeywordData ScrapedPage::GetKeyword(std::string keyword)
+    {
+        KeywordData keywordData;
+        for(auto index = 0; index < m_extractedText.size(); ++index)
+        {
+            auto pos = m_extractedText[index].text.find(keyword, 0);
+            while(pos != std::string::npos)
+            {
+                keywordData.occurrences++;
+                keywordData.position.emplace_back(index, pos);
+                pos = m_extractedText[index].text.find(keyword, pos + 1);
+            }
+        };
+        return keywordData;
+    }
+
     void ScrapedPage::ExtractPageTextElements(lxb_dom_node_t* node)
     {
         std::string fontSize = "default";

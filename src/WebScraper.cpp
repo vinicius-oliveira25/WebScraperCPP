@@ -36,7 +36,7 @@ namespace WebScraper
     {
         for(auto index = 0; index < urls.size(); ++index)
         {
-            m_scrapedPages[urls[index]] = nullptr;
+            m_scrapedPages[std::string(urls[index])] = nullptr;
             m_workerThreads.at(index % m_workerThreads.size()).second.push(static_cast<std::string>(urls[index]));
         }
     }
@@ -60,6 +60,20 @@ namespace WebScraper
         return returnString;
     }
 
+    UpperKeywordData WebScraper::GetKeywordData(std::string keyword)
+    {
+        UpperKeywordData keywordData;
+        WaitAllQueues();
+        std::for_each(m_scrapedPages.begin(), m_scrapedPages.end(), [&keywordData, keyword](auto& elem){
+            if(auto keywordStruct = std::get<IScrapedPagePtr>(elem)->GetKeyword(keyword); keywordStruct.occurrences != 0)
+            {
+                keywordData.totalOccurences += keywordStruct.occurrences;
+                keywordData.keywordDataPerURL.emplace_back(elem.first , keywordStruct);
+            }
+        });
+        return keywordData;
+    }
+
     void WebScraper::ScrapURL(const std::string_view& url)
     {
         beauty::client client;
@@ -73,7 +87,7 @@ namespace WebScraper
             if(response.status() == boost::beast::http::status::ok)
             {
                 std::cout << std::format("Scrapped {}", url) << std::endl;
-                m_scrapedPages[url] = std::make_shared<ScrapedPage>(response.body());
+                m_scrapedPages[std::string(url)] = std::make_shared<ScrapedPage>(std::string(url), response.body());
             }
             else
             {
@@ -86,17 +100,17 @@ namespace WebScraper
         }
     }
 
-    void WebScraper::GetAllThreads()
+    void WebScraper::WaitAllQueues()
     {
-        for(auto& thread : m_workerThreads)
+        for(auto& page : m_scrapedPages)
         {
-            while(!thread.second.empty());
+            while(m_scrapedPages[page.first] == nullptr);
         }
     }
 
     IScrapedPagePtr WebScraper::GetScrapedDataFromPage(std::string_view url)
     {
-        return m_scrapedPages[url];
+        return m_scrapedPages[std::string(url)];
     }
 
 }

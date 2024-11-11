@@ -20,7 +20,7 @@ int Helper(int argc, char *argv[])
             return std::isdigit(ch);
         });
 
-        if((argument == "-th" || argument == "--thread") && isDigit)
+        if((argument == "-t" || argument == "--thread") && isDigit)
         {
             return std::stoi(value);
         }
@@ -38,39 +38,24 @@ int main(int argc , char *argv[])
     auto killSignal = std::make_shared<std::atomic_bool>(false);
     WebScraper::WebScraper webScraper(killSignal, threadsNum);
     std::vector<std::string_view> wikipediaArticles = {
-        "https://br.linkedin.com/company/pureai-official",
-        "https://stackoverflow.com/questions/68867455/how-to-get-certificate-chain-to-show-on-google-chrome",
-        "https://en.wikipedia.org/wiki/Quantum_mechanics",
-        "https://en.wikipedia.org/wiki/Artificial_intelligence",
-        "https://en.wikipedia.org/wiki/History_of_Earth",
-        "https://en.wikipedia.org/wiki/Computer_science",
-        "https://en.wikipedia.org/wiki/Evolutionary_biology",
-        "https://en.wikipedia.org/wiki/Space_exploration",
-        "https://en.wikipedia.org/wiki/Machine_learning",
-        "https://en.wikipedia.org/wiki/Ancient_Egypt",
-        "https://en.wikipedia.org/wiki/Cryptography",
-        "https://en.wikipedia.org/wiki/Microcontroller",
-        "https://en.wikipedia.org/wiki/Neural_network",
-        "https://en.wikipedia.org/wiki/Embedded_system",
-        "https://en.wikipedia.org/wiki/Game_theory",
-        "https://en.wikipedia.org/wiki/Control_system"
+        "https://en.wikipedia.org/wiki/The_Eternaut",
+        "https://en.wikipedia.org/wiki/El_Eternauta:_segunda_parte",
+        "https://en.wikipedia.org/wiki/Quantum_mechanics"
     };
     webScraper.ScrapeURLs(wikipediaArticles);
 
 #ifdef BENCHMARK
     auto startTime = std::chrono::steady_clock::now();
 #endif 
-    std::cout << webScraper.GetPageData(wikipediaArticles[3], std::chrono::milliseconds(3000)) << std::endl;
-    std::cout << webScraper.GetPageData(wikipediaArticles[14], std::chrono::milliseconds(3000)) << std::endl;
-    std::cout << webScraper.GetPageData(wikipediaArticles[11], std::chrono::milliseconds(3000)) << std::endl;
-    std::cout << webScraper.GetPageData(wikipediaArticles[8], std::chrono::milliseconds(3000)) << std::endl;
-    std::cout << webScraper.GetPageData(wikipediaArticles[13], std::chrono::milliseconds(3000)) << std::endl;
-    std::cout << webScraper.GetPageData(wikipediaArticles[6], std::chrono::milliseconds(3000)) << std::endl;
+    std::cout << webScraper.GetPageData(wikipediaArticles[0]) << std::endl;
 
 #ifdef BENCHMARK
     auto endTime = std::chrono::steady_clock::now();
     std::cout << "Milliseconds since: " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << std::endl;
 #endif
+
+    auto keyword = webScraper.GetKeywordData("Eternaut ");
+    std::cout << keyword.Serialize() << std::endl;
 
     beauty::signal({SIGINT, SIGTERM, SIGHUP}, [&killSignal](int s){
         std::cout << std::format("Gracefully stopping with signal {}", s) << std::endl;
