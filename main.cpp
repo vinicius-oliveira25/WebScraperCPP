@@ -12,8 +12,11 @@
 
 int Helper(int argc, char *argv[])
 {
-    if(argc == 3)
+    switch(argc)
     {
+    case 1:
+        return 1;
+    case 3:
         auto argument = std::string(argv[1]);
         auto value = std::string(argv[2]);
         auto isDigit = std::all_of(value.begin(), value.end(), [](auto ch){
@@ -24,10 +27,12 @@ int Helper(int argc, char *argv[])
         {
             return std::stoi(value);
         }
+        break;
     }
 
+
     std::cerr << "[ERROR] Argument missing: " << std::endl;
-    std::cerr << "      -t / --threads <num> (Determining how many worker threads should function)" << std::endl;
+    std::cerr << "      -t / --threads <num> (Determining how many worker threads should function)(Default: 1)" << std::endl;
     std::cerr << "ie: WebScraper -th 3" << std::endl;
     std::exit(0);
 }
